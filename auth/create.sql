@@ -1,0 +1,15 @@
+CREATE DATABASE auth;
+CREATE TABLE IF NOT EXISTS users
+(
+    id       SERIAL PRIMARY KEY,
+    login    VARCHAR NOT NULL,
+    password VARCHAR NOT NULL,
+    salt     VARCHAR NOT NULL
+);
+CREATE TABLE IF NOT EXISTS shops
+(
+    id       SERIAL PRIMARY KEY,
+    login    VARCHAR NOT NULL,
+    password VARCHAR NOT NULL,
+    salt     VARCHAR NOT NULL
+);

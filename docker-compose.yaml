@@ -1,0 +1,36 @@
+services:
+  consul:
+    image: hashicorp/consul:latest
+    ports:
+      - 8500:8500
+      - 8600:8600/udp
+    networks:
+      - net
+    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+
+  auth:
+    image: project-auth:latest
+    pull_policy: build
+    build:
+      context: auth
+    environment:
+      HZ_CLUSTERNAME: auth_hazelcast
+      HZ_MAP: sessions
+      POSTGRES_ADDR: postgres
+      GIN_MODE: release
+      CONSUL_ADDR: consul:8500
+    networks:
+      - net
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: auth-service
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - ./auth/create.sql:/docker-entrypoint-initdb.d/create.sql
+    networks:
+      - net
+
+networks:
+  net:
+    driver: bridge
