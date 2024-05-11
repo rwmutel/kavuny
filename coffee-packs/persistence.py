@@ -36,7 +36,7 @@ class Client:
 
     def insert_coffee_pack(self, pack: dict):
         cursor = self.conn.cursor()
-        cursor.execute(f"SELECT nextval('coffee_packs_id_seq')")
+        cursor.execute("SELECT nextval('coffee_packs_id_seq')")
         pack_id = cursor.fetchone()[0]
 
         query = sql.SQL("INSERT INTO coffee_packs VALUES ({})").format(

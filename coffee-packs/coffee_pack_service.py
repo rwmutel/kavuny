@@ -16,7 +16,7 @@ def get_packs(ids: Optional[list[int]] = None):
 
 def tuples_to_json(
         tuple: List[Tuple],
-        item_keys: list[str] = coffee_pack_item_keys
+        item_keys: list[str] = ["id"] + list(coffee_pack_item_keys)
         ):
     return [dict(zip(item_keys, item)) for item in tuple]
 
