@@ -1,11 +1,12 @@
-from persistence import Client
+from typing import List, Tuple
+
+import pandas as pd
+import requests
+import utils
+from fastapi import HTTPException
 from models.coffee_shop_model import CoffeeShop
 from models.menu_item_model import MenuItem
-from typing import List, Tuple
-from fastapi import HTTPException
-import requests
-import pandas as pd
-import utils
+from persistence import Client
 
 conn = Client("user", "kavuny", host="shops-db", port=5432)
 
@@ -25,7 +26,13 @@ def update_coffee_shop(id: int, coffee_shop: dict, session_id: int):
 
 def get_shop_menu(id: int):
     shop_items = pd.DataFrame(conn.get_shop_menu(id),
-                              columns=["id", "coffee_shop_id", "pack_id", "quantity", "price"])
+                              columns=[
+                                  "id",
+                                  "coffee_shop_id",
+                                  "pack_id",
+                                  "quantity",
+                                  "price"
+                                  ])
     item_details = pd.DataFrame(
         requests.get(utils.get_random_service_addr("coffee-packs") + "/packs/",
                      params={"ids": list(shop_items["pack_id"])}).json()
@@ -41,7 +48,8 @@ def add_menu_item(id: int, item: MenuItem, session_id: int):
     user_type, user_id = uid.split(":")
     if not (user_type == "shop" and int(user_id) == id):
         raise HTTPException(status_code=403,
-                            detail="You are not allowed to add items to this shop")
+                            detail="You are not allowed "
+                                   "to add items to this shop")
     return conn.add_menu_item(id, item.model_dump())
 
 

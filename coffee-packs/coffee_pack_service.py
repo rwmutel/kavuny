@@ -1,9 +1,10 @@
-from persistence import Client
-from typing import Optional, Tuple, List
-from coffee_pack_model import CoffeePack
-from fastapi import HTTPException
+from typing import List, Optional, Tuple
+
 import requests
 import utils
+from coffee_pack_model import CoffeePack
+from fastapi import HTTPException
+from persistence import Client
 
 coffee_pack_item_keys = CoffeePack.model_fields.keys()
 conn = Client("user", "kavuny", host="packs-db", port=5432)
@@ -31,5 +32,6 @@ def create_pack(pack: CoffeePack, session_id: int) -> int:
         raise HTTPException(status_code=401, detail=r.text)
     user_type, user_id = r.text.split(":")
     if user_type != utils.UserType.SHOP:
-        raise HTTPException(status_code=401, detail="Only shops can create packs")
+        raise HTTPException(status_code=401,
+                            detail="Only shops can create packs")
     return conn.insert_coffee_pack(pack.model_dump())

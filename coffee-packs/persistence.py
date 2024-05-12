@@ -1,7 +1,8 @@
-import psycopg2
-from psycopg2 import sql
 import dataclasses
 from typing import ClassVar, Optional
+
+import psycopg2
+from psycopg2 import sql
 
 
 @dataclasses.dataclass
@@ -42,7 +43,8 @@ class Client:
         query = sql.SQL("INSERT INTO coffee_packs VALUES ({})").format(
             sql.SQL(', ').join(sql.Placeholder() * (len(pack) + 1))
         )
-        values = [v if not isinstance(v, list) else ",".join([str(i) for i in v])
+        values = [v if not isinstance(v, list)
+                  else ",".join([str(i) for i in v])
                   for v in pack.values()]
         values.insert(0, pack_id)
         cursor.execute(query, values)

@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException, Cookie
-from typing import Annotated, Optional, List
-import coffee_shop_service
-from models.menu_item_model import MenuItem
 from contextlib import asynccontextmanager
+from typing import Annotated, List, Optional
+
+import coffee_shop_service
 import utils
+from fastapi import Cookie, FastAPI, HTTPException
+from models.menu_item_model import MenuItem
 
 
 @asynccontextmanager
@@ -51,7 +52,8 @@ def get_shop_menu(id: int):
     menu = coffee_shop_service.get_shop_menu(id)
     if not menu:
         raise HTTPException(status_code=404,
-                            detail=f"Menu for coffee shop with id {id} not found")
+                            detail="Menu for coffee shop "
+                                   f"with id {id} not found")
     return menu
 
 
@@ -69,13 +71,15 @@ def add_menu_item(
         added_rows += coffee_shop_service.add_menu_item(id, item, session_id)
     return f"{added_rows} item(s) added to menu"
 
+
 @app.delete("/coffee-shops/{id}/menu")
 def delete_menu_item(
     id: int,
     item_id: int,
     session_id: Annotated[str | None, Cookie()] = None
 ):
-    return f"successfully deleted {coffee_shop_service.delete_menu_item(id, item_id, session_id)} items"
+    num_deleted = coffee_shop_service.delete_menu_item(id, item_id, session_id)
+    return f"successfully deleted {num_deleted} items"
 
 
 @app.get("/healthcheck")

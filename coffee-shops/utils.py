@@ -1,7 +1,8 @@
-import consul
-import socket
 import os
 import random
+import socket
+
+import consul
 
 c: consul.Consul = None
 HTTP_PREFIX = "http://"
@@ -18,7 +19,9 @@ def register_in_consul(name: str, port: int = 8080):
         service_id=service_id,
         address=addr,
         port=port,
-        check=consul.Check().http(f"{HTTP_PREFIX}{addr}:{port}/healthcheck", "30s")
+        check=consul.Check().http(
+            f"{HTTP_PREFIX}{addr}:{port}/healthcheck", "30s"
+            )
     )
     return service_id
 

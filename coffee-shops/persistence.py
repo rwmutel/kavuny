@@ -1,7 +1,8 @@
-import psycopg2
-from psycopg2 import sql
 import dataclasses
 from typing import Optional
+
+import psycopg2
+from psycopg2 import sql
 
 
 @dataclasses.dataclass
@@ -40,8 +41,8 @@ class Client:
         query = sql.SQL("INSERT INTO coffee_shops VALUES ({})").format(
             sql.SQL(', ').join(sql.Placeholder() * (len(shop) + 1))
         )
-        values = [v if not isinstance(v, list) else ",".join([str(i) for i in v])
-                  for v in shop.values()]
+        values = [v if not isinstance(v, list)
+                  else ",".join([str(i) for i in v]) for v in shop.values()]
         values.insert(0, shop_id)
         cursor.execute(query, values)
         self.conn.commit()
@@ -51,7 +52,8 @@ class Client:
         print(shop)
         query = sql.SQL("UPDATE coffee_shops SET {} WHERE id = %s").format(
             sql.SQL(', ').join(
-                sql.SQL("{} = %s").format(sql.Identifier(k)) for k in shop.keys()
+                sql.SQL("{} = %s").format(sql.Identifier(k))
+                for k in shop.keys()
             )
         )
         cursor = self.conn.cursor()
@@ -60,7 +62,8 @@ class Client:
         return cursor.rowcount
 
     def get_shop_menu(self, id: int):
-        query = sql.SQL("SELECT * FROM menus WHERE coffee_shop_id = {}").format((sql.Placeholder()))
+        query = sql.SQL("SELECT * FROM menus WHERE coffee_shop_id = {}")\
+            .format((sql.Placeholder()))
         cursor = self.conn.cursor()
         cursor.execute(query, [id])
         return cursor.fetchall()
@@ -81,7 +84,8 @@ class Client:
         return cursor.rowcount
 
     def delete_menu_item(self, id: int, item_id: int):
-        query = sql.SQL("DELETE FROM menus WHERE coffee_shop_id = {} AND coffee_pack_id = {}")\
+        query = sql.SQL("DELETE FROM menus WHERE "
+                        "coffee_shop_id = {} AND coffee_pack_id = {}")\
             .format(sql.Placeholder(), sql.Placeholder())
         cursor = self.conn.cursor()
         cursor.execute(query, (id, item_id))
