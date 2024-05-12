@@ -1,0 +1,17 @@
+[
+    {
+        "key": "kafka_address",
+        "flags": 0,
+        "value": "kafka:9092"
+    },
+    {
+        "key": "kafka_topic",
+        "flags": 0,
+        "value": "logs"
+    },
+    {
+        "key": "kv_initted",
+        "flags": 0,
+        "value": true
+    }
+]

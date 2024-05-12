@@ -1,11 +1,19 @@
 services:
   consul:
-    image: hashicorp/consul:latest
+    build:
+      dockerfile: ./consul/Consul.Dockerfile
     ports:
-      - 8500:8500
+      - "8500:8500"
+      - "8600:8600/udp"
+      - "8600:8600/tcp"
+    healthcheck:
+      test: ["CMD", "consul", "kv", "get", "kv_initted"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
     networks:
       - kavuny-net
-    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
 
   auth:
     image: project-auth:latest
@@ -20,6 +28,9 @@ services:
       CONSUL_ADDR: consul:8500
     networks:
       - kavuny-net
+    depends_on:
+      consul:
+        condition: service_healthy
 
   postgres:
     image: postgres:latest
