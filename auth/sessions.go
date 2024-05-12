@@ -6,6 +6,8 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/hazelcast/hazelcast-go-client"
+	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -17,7 +19,7 @@ type SessionManager struct {
 
 type session struct {
 	ExpirationTime time.Time `json:"expiration_time,omitempty"`
-	IsShopAccount  bool      `json:"is_shop_account,omitempty"`
+	IsShopAccount  UserType  `json:"user_type,omitempty"`
 	AccountID      int64     `json:"account_id,omitempty"`
 }
 
@@ -41,33 +43,33 @@ func (sm *SessionManager) Close() error {
 	return sm.hzClient.Shutdown(sm.hzCTX)
 }
 
-func (sm *SessionManager) newSession() (string, error) {
+func (sm *SessionManager) newSession() (string, *HttpError) {
 	sessionUUID, err := uuid.NewUUID()
 	if err != nil {
-		return "", err
+		return "", NewHttpError(err, "Unable to create UUID", http.StatusInternalServerError)
 	}
 	sessionID := sessionUUID.String()
 	expirationTime := time.Now().Add(5 * time.Minute)
 	value, err := json.Marshal(session{ExpirationTime: expirationTime, AccountID: UnLogged})
 	if err != nil {
-		return "", err
+		return "", NewHttpError(err, "Unable to marshal session object into JSON", http.StatusInternalServerError)
 	}
 	err = sm.hzMap.Set(sm.hzCTX, sessionID, value)
 	if err != nil {
-		return "", err
+		return "", NewHttpError(err, "Unable to save session into Hazelcast map", http.StatusInternalServerError)
 	}
 	return sessionID, nil
 }
 
-func (sm *SessionManager) getSession(sessionID string) (*session, error) {
+func (sm *SessionManager) getSession(sessionID string) (*session, *HttpError) {
 	value, err := sm.hzMap.Get(sm.hzCTX, sessionID)
 	if err != nil || value == nil {
-		return nil, err
+		return nil, NewHttpError(err, "Unable to retrieve value from Hazelcast map", http.StatusServiceUnavailable)
 	}
 	var sessionObj session
 	err = json.Unmarshal(value.([]byte), &sessionObj)
 	if err != nil {
-		return nil, err
+		return nil, NewHttpError(err, "Unable to parse session object", http.StatusInternalServerError)
 	}
 	if time.Now().After(sessionObj.ExpirationTime) {
 		return nil, nil
@@ -75,10 +77,10 @@ func (sm *SessionManager) getSession(sessionID string) (*session, error) {
 	return &sessionObj, nil
 }
 
-func (sm *SessionManager) RenewSession(sessionID string) (string, error) {
-	sessionObj, err := sm.getSession(sessionID)
-	if err != nil {
-		return "", err
+func (sm *SessionManager) RenewSession(sessionID string) (string, *HttpError) {
+	sessionObj, httpErr := sm.getSession(sessionID)
+	if httpErr != nil {
+		return "", httpErr
 	}
 	if sessionObj == nil {
 		return sm.newSession()
@@ -86,93 +88,53 @@ func (sm *SessionManager) RenewSession(sessionID string) (string, error) {
 	sessionObj.ExpirationTime = time.Now().Add(5 * time.Minute)
 	value, err := json.Marshal(sessionObj)
 	if err != nil {
-		return "", err
+		return "", NewHttpError(err, "Unable to marshal session object into JSON", http.StatusInternalServerError)
 	}
 	err = sm.hzMap.Set(sm.hzCTX, sessionID, value)
 	if err != nil {
-		return "", err
+		return "", NewHttpError(err, "Unable to save session into Hazelcast map", http.StatusInternalServerError)
 	}
 	return sessionID, nil
 }
 
-func (sm *SessionManager) GetUserID(sessionID string) (int64, error) {
+func (sm *SessionManager) GetID(sessionID string) (string, *HttpError) {
 	sessionObj, err := sm.getSession(sessionID)
-	if err != nil || sessionObj == nil {
-		return UnLogged, err
+	if err != nil {
+		return "", err
 	}
-	if !sessionObj.IsShopAccount {
-		return sessionObj.AccountID, nil
+	if sessionObj == nil || sessionObj.AccountID == UnLogged {
+		return "", NewHttpError(errors.New(""), "Not authorised", http.StatusUnauthorized)
 	}
-	return UnLogged, nil
-}
-func (sm *SessionManager) GetShopID(sessionID string) (int64, error) {
-	sessionObj, err := sm.getSession(sessionID)
-	if err != nil || sessionObj == nil {
-		return UnLogged, err
-	}
-	if sessionObj.IsShopAccount {
-		return sessionObj.AccountID, nil
-	}
-	return UnLogged, nil
+	return string(sessionObj.IsShopAccount) + strconv.FormatInt(sessionObj.AccountID, 10), nil
 }
 
-func (sm *SessionManager) SetUserID(sessionID string, userID int64) (string, error) {
-	sessionObj, err := sm.getSession(sessionID)
-	if err != nil {
-		return "", err
+func (sm *SessionManager) SetID(sessionID string, id int64, userType UserType) (string, *HttpError) {
+	sessionObj, httpErr := sm.getSession(sessionID)
+	if httpErr != nil {
+		return "", httpErr
 	}
 	if sessionObj == nil {
-		sessionID, err = sm.newSession()
-		if err != nil {
-			return "", err
+		sessionID, httpErr = sm.newSession()
+		if httpErr != nil {
+			return "", httpErr
 		}
-		sessionObj, err = sm.getSession(sessionID)
-		if err != nil {
-			return "", err
+		sessionObj, httpErr = sm.getSession(sessionID)
+		if httpErr != nil {
+			return "", httpErr
 		}
 		if sessionObj == nil {
-			return "", errors.New("failed to create new session and log in")
+			return "", NewHttpError(errors.New(""), "failed to create new session and log in", http.StatusInternalServerError)
 		}
 	}
-	sessionObj.IsShopAccount = false
-	sessionObj.AccountID = userID
+	sessionObj.IsShopAccount = userType
+	sessionObj.AccountID = id
 	value, err := json.Marshal(sessionObj)
 	if err != nil {
-		return "", err
+		return "", NewHttpError(err, "Unable to marshal session object into JSON", http.StatusInternalServerError)
 	}
 	err = sm.hzMap.Set(sm.hzCTX, sessionID, value)
 	if err != nil {
-		return "", err
-	}
-	return sessionID, nil
-}
-func (sm *SessionManager) SetShopID(sessionID string, shopID int64) (string, error) {
-	sessionObj, err := sm.getSession(sessionID)
-	if err != nil {
-		return "", err
-	}
-	if sessionObj == nil {
-		sessionID, err = sm.newSession()
-		if err != nil {
-			return "", err
-		}
-		sessionObj, err = sm.getSession(sessionID)
-		if err != nil {
-			return "", err
-		}
-		if sessionObj == nil {
-			return "", errors.New("failed to create new session and log in")
-		}
-	}
-	sessionObj.IsShopAccount = true
-	sessionObj.AccountID = shopID
-	value, err := json.Marshal(sessionObj)
-	if err != nil {
-		return "", err
-	}
-	err = sm.hzMap.Set(sm.hzCTX, sessionID, value)
-	if err != nil {
-		return "", err
+		return "", NewHttpError(err, "Unable to save session into Hazelcast map", http.StatusInternalServerError)
 	}
 	return sessionID, nil
 }

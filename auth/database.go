@@ -8,7 +8,13 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"github.com/thanhpk/randstr"
+	"net/http"
+	"slices"
 )
+
+type UserType string
+
+var userTypes = []UserType{"user", "shop"}
 
 type LoginDatabaseManager struct {
 	db *sql.DB
@@ -19,73 +25,52 @@ type user struct {
 	login string
 	pass  string
 	salt  string
+	user  UserType
 }
 
-type WrongCredentialsError struct {
-	err error
+func (dbm *LoginDatabaseManager) CheckUserType(userType UserType) bool {
+	return slices.Contains(userTypes, userType)
 }
-
-func (e WrongCredentialsError) Error() string {
-	return e.err.Error()
-}
-
-type LoginExistsError struct {
-	err error
-}
-
-func (e LoginExistsError) Error() string {
-	return e.err.Error()
-}
-
-func (dbm *LoginDatabaseManager) loginAccount(table, login, password string) (int64, error) {
+func (dbm *LoginDatabaseManager) loginAccount(login, password string) (int64, UserType, *HttpError) {
 	var userInstance user
-	selectErr := dbm.db.QueryRow(fmt.Sprintf("SELECT * FROM %s WHERE login=$1", table), login).Scan(
+	selectErr := dbm.db.QueryRow("SELECT * FROM users WHERE login=$1", login).Scan(
 		&userInstance.id,
 		&userInstance.login,
 		&userInstance.pass,
 		&userInstance.salt,
+		&userInstance.user,
 	)
 	if !errors.Is(selectErr, sql.ErrNoRows) {
-		return 0, WrongCredentialsError{errors.New("wrong credentials")}
+		return 0, "", NewHttpError(errors.New(""), "Wrong credentials", http.StatusForbidden)
 	} else if selectErr != nil {
-		return 0, selectErr
+		return 0, "", NewHttpError(selectErr, "Failed to select user", http.StatusServiceUnavailable)
 	}
 	hash := md5.Sum([]byte(password + userInstance.salt))
 	if userInstance.pass != hex.EncodeToString(hash[:]) {
-		return 0, WrongCredentialsError{errors.New("wrong credentials")}
+		return 0, "", NewHttpError(errors.New(""), "Wrong credentials", http.StatusForbidden)
 	}
-	return userInstance.id, nil
+	return userInstance.id, userInstance.user, nil
 }
-func (dbm *LoginDatabaseManager) createAccount(table, login, password string) (int64, error) {
-	selectErr := dbm.db.QueryRow(fmt.Sprintf("SELECT login FROM %s WHERE login=$1", table), login).Scan()
+func (dbm *LoginDatabaseManager) CreateAccount(login, password string, user UserType) (int64, *HttpError) {
+	selectErr := dbm.db.QueryRow("SELECT users FROM %s WHERE login=$1", login).Scan()
 	if selectErr == nil {
-		return 0, LoginExistsError{errors.New("username already exists")}
+		return 0, NewHttpError(errors.New(""), "Username already exists", http.StatusForbidden)
 	}
 	if !errors.Is(selectErr, sql.ErrNoRows) {
-		return 0, selectErr
+		return 0, NewHttpError(selectErr, "Failed to select user", http.StatusServiceUnavailable)
 	}
 	salt := randstr.String(16)
 	hash := md5.Sum([]byte(password + salt))
 	hashedPass := hex.EncodeToString(hash[:])
 	var id int64
 	err := dbm.db.QueryRow(
-		fmt.Sprintf("INSERT INTO %s (login, password, salt) VALUES ($1, $2, $3) RETURNING id", table),
-		login, hashedPass, salt,
+		"INSERT INTO users (login, password, salt, userType) VALUES ($1, $2, $3, $4) RETURNING id",
+		login, hashedPass, salt, user,
 	).Scan(&id)
-	return id, err
-}
-
-func (dbm *LoginDatabaseManager) LoginShop(login, password string) (int64, error) {
-	return dbm.loginAccount("shops", login, password)
-}
-func (dbm *LoginDatabaseManager) CreateShop(login, password string) (int64, error) {
-	return dbm.createAccount("shops", login, password)
-}
-func (dbm *LoginDatabaseManager) LoginUser(login, password string) (int64, error) {
-	return dbm.loginAccount("users", login, password)
-}
-func (dbm *LoginDatabaseManager) CreateUser(login, password string) (int64, error) {
-	return dbm.createAccount("users", login, password)
+	if err != nil {
+		return 0, NewHttpError(err, "Failed to insert user", http.StatusServiceUnavailable)
+	}
+	return id, nil
 }
 
 func (dbm *LoginDatabaseManager) Initialize(user, password, host, port string) (err error) {
