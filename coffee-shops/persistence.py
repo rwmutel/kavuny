@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2 import sql
 import dataclasses
-from typing import ClassVar, Optional
+from typing import Optional
 
 
 @dataclasses.dataclass

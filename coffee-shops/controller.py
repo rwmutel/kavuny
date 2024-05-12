@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Cookie
 from typing import Annotated, Optional, List
 import coffee_shop_service
 from models.menu_item_model import MenuItem
@@ -34,15 +34,16 @@ def get_all_shops():
 
 
 @app.put("/coffee-shops/{id}")
-def update_coffee_shop(id: int, coffee_shop: dict):
-    try:
-        if coffee_shop_service.update_coffee_shop(id, coffee_shop):
-            return "successfully updated"
-        else:
-            raise HTTPException(status_code=404,
-                                detail=f"Coffee shop with id {id} not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+def update_coffee_shop(
+    id: int,
+    coffee_shop: dict,
+    session_id: Annotated[str | None, Cookie()] = None
+):
+    if coffee_shop_service.update_coffee_shop(id, coffee_shop, session_id):
+        return "successfully updated"
+    else:
+        raise HTTPException(status_code=404,
+                            detail=f"Coffee shop with id {id} not found")
 
 
 @app.get("/coffee-shops/{id}/menu")
@@ -55,25 +56,26 @@ def get_shop_menu(id: int):
 
 
 @app.post("/coffee-shops/{id}/menu")
-def add_menu_item(id: int, item: MenuItem | List[MenuItem]):
+def add_menu_item(
+    id: int,
+    item: MenuItem | List[MenuItem],
+    session_id: Annotated[str | None, Cookie()] = None
+):
     added_rows = 0
-    try:
-        if isinstance(item, list):
-            for i in item:
-                added_rows += coffee_shop_service.add_menu_item(id, i)
-        else:
-            added_rows += coffee_shop_service.add_menu_item(id, item)
-        return f"{added_rows} item(s) added to menu"
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+    if isinstance(item, list):
+        for i in item:
+            added_rows += coffee_shop_service.add_menu_item(id, i, session_id)
+    else:
+        added_rows += coffee_shop_service.add_menu_item(id, item, session_id)
+    return f"{added_rows} item(s) added to menu"
 
 @app.delete("/coffee-shops/{id}/menu")
-def delete_menu_item(id: int, item_id: int):
-    try:
-        return f"successfully deleted {coffee_shop_service.delete_menu_item(id, item_id)} items"
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+def delete_menu_item(
+    id: int,
+    item_id: int,
+    session_id: Annotated[str | None, Cookie()] = None
+):
+    return f"successfully deleted {coffee_shop_service.delete_menu_item(id, item_id, session_id)} items"
 
 
 @app.get("/healthcheck")
