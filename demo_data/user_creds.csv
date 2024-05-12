@@ -1,0 +1,16 @@
+login,password,user_type
+admin,password,user
+john_doe,password1,user
+jane_smith,abc123,user
+test_user,pass123,shop
+user123,qwerty,user
+webmaster,123456,user
+support,letmein,shop
+info,football,shop
+sales,welcome,user
+marketing,sunshine,user
+developer,demo123,user
+customer,customer123,shop
+manager,manager123,user
+guest,guest123,user
+demo,demo123,user

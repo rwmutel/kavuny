@@ -40,31 +40,31 @@ func (dbm *LoginDatabaseManager) loginAccount(login, password string) (int64, Us
 		&userInstance.salt,
 		&userInstance.user,
 	)
-	if !errors.Is(selectErr, sql.ErrNoRows) {
-		return 0, "", NewHttpError(errors.New(""), "Wrong credentials", http.StatusForbidden)
+	if errors.Is(selectErr, sql.ErrNoRows) {
+		return 0, "", NewHttpError(nil, "Wrong credentials", http.StatusForbidden)
 	} else if selectErr != nil {
 		return 0, "", NewHttpError(selectErr, "Failed to select user", http.StatusServiceUnavailable)
 	}
 	hash := md5.Sum([]byte(password + userInstance.salt))
 	if userInstance.pass != hex.EncodeToString(hash[:]) {
-		return 0, "", NewHttpError(errors.New(""), "Wrong credentials", http.StatusForbidden)
+		return 0, "", NewHttpError(nil, "Wrong credentials", http.StatusForbidden)
 	}
 	return userInstance.id, userInstance.user, nil
 }
 func (dbm *LoginDatabaseManager) CreateAccount(login, password string, user UserType) (int64, *HttpError) {
-	selectErr := dbm.db.QueryRow("SELECT users FROM %s WHERE login=$1", login).Scan()
-	if selectErr == nil {
-		return 0, NewHttpError(errors.New(""), "Username already exists", http.StatusForbidden)
-	}
-	if !errors.Is(selectErr, sql.ErrNoRows) {
+	var userCount int
+	selectErr := dbm.db.QueryRow("SELECT count(*) FROM users WHERE login=$1", login).Scan(&userCount)
+	if selectErr != nil {
 		return 0, NewHttpError(selectErr, "Failed to select user", http.StatusServiceUnavailable)
+	} else if userCount > 0 {
+		return 0, NewHttpError(nil, "Username already exists", http.StatusForbidden)
 	}
 	salt := randstr.String(16)
 	hash := md5.Sum([]byte(password + salt))
 	hashedPass := hex.EncodeToString(hash[:])
 	var id int64
 	err := dbm.db.QueryRow(
-		"INSERT INTO users (login, password, salt, userType) VALUES ($1, $2, $3, $4) RETURNING id",
+		"INSERT INTO users (login, password, salt, user_type) VALUES ($1, $2, $3, $4) RETURNING id",
 		login, hashedPass, salt, user,
 	).Scan(&id)
 	if err != nil {

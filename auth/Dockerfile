@@ -5,11 +5,12 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 WORKDIR /app
 
-COPY go.mod go.sum *.go ./
-RUN go mod download
-
 USER root
 
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY *.go ./
 RUN go build -o /auth_service
 
 FROM hazelcast/hazelcast:latest AS build-release-stage
@@ -18,4 +19,4 @@ COPY --from=build-stage /auth_service /auth_service
 
 EXPOSE 8080
 
-CMD ["/bin/bash", "-c", "hz start & sleep 20 && /auth_service"]
+CMD /auth_service

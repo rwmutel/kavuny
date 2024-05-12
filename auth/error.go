@@ -7,6 +7,9 @@ type HttpError struct {
 }
 
 func (e *HttpError) Error() string {
+	if e.err == nil {
+		return e.msg
+	}
 	return e.msg + ": " + e.err.Error()
 }
 

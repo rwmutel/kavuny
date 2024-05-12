@@ -22,7 +22,7 @@ func (manager *AuthManager) setupSession(ctx *gin.Context) string {
 		ctx.String(err.Code(), err.Error())
 		return ""
 	}
-	ctx.SetCookie("session_id", sessionID, -1, "/", "", false, true)
+	ctx.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
 	return sessionID
 }
 
@@ -69,6 +69,7 @@ func (manager *AuthManager) SingUp(ctx *gin.Context) {
 
 	if !manager.loginManager.CheckUserType(userType) {
 		ctx.String(http.StatusBadRequest, "Invalid user type: %s", userType)
+		return
 	}
 
 	id, err := manager.loginManager.CreateAccount(login, password, userType)
