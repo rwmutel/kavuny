@@ -132,8 +132,7 @@ func main() {
 	router.GET("/session_id", manager.InitializeSession)
 	router.PATCH("/session_id", manager.LogIn)
 	router.POST("/sign_up", manager.SingUp)
-	router.GET("/coffee_shop_id", manager.ShopID)
-	router.GET("/user_id", manager.UserID)
+	router.GET("/id", manager.GetID)
 	router.GET("/healthcheck", healthcheck)
 
 	if err := router.Run(":8080"); err != nil {
