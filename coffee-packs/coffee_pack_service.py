@@ -25,7 +25,6 @@ def tuples_to_json(
 
 
 def create_pack(pack: CoffeePack, session_id: int) -> int:
-    print(utils.get_random_service_addr("auth-service"))
     r = requests.get(utils.get_random_service_addr("auth-service") + "/id",
                      cookies={"session_id": session_id})
     if r.status_code == 401:

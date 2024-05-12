@@ -31,12 +31,8 @@ def create_pack(
     pack: CoffeePack,
     session_id: Annotated[str | None, Cookie()] = None
 ):
-    print(f"{session_id=}")
-    try:
-        pack_id = service.create_pack(pack, session_id)
-        return f"Pack created with id {pack_id}"
-    except Exception as e:
-        raise e
+    pack_id = service.create_pack(pack, session_id)
+    return f"Pack created with id {pack_id}"
 
 
 @app.get("/healthcheck")
