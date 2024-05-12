@@ -11,7 +11,7 @@ services:
     image: project-auth:latest
     pull_policy: build
     build:
-      context: auth
+      context: src/auth
     environment:
       HZ_CLUSTERNAME: auth_hazelcast
       HZ_MAP: sessions
