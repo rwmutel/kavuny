@@ -48,8 +48,6 @@ services:
     build:
       context: coffee-packs
       dockerfile: CoffeePacks.Dockerfile
-    # ports:
-    #  - "8080:8080"
     networks:
       - kavuny-net
     depends_on:
@@ -82,8 +80,6 @@ services:
     build:
       context: coffee-shops
       dockerfile: CoffeeShops.Dockerfile
-    ports:
-      - "8080:8080"
     networks:
       - kavuny-net
     depends_on:
