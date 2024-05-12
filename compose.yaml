@@ -1,0 +1,114 @@
+services:
+  consul:
+    build:
+      dockerfile: ./consul/Consul.Dockerfile
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+      - "8600:8600/tcp"
+    healthcheck:
+      test: ["CMD", "consul", "kv", "get", "kv_initted"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
+    networks:
+      - kavuny-net
+
+  auth:
+    image: project-auth:latest
+    pull_policy: build
+    build:
+      context: auth
+    environment:
+      HZ_CLUSTERNAME: auth_hazelcast
+      HZ_MAP: sessions
+      POSTGRES_ADDR: postgres
+      GIN_MODE: release
+      CONSUL_ADDR: consul:8500
+    networks:
+      - kavuny-net
+    depends_on:
+      consul:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: auth-service
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - ./demo_data/create.sql:/docker-entrypoint-initdb.d/create.sql
+      - ./demo_data/users.csv:/opt/demo_data/users.csv
+    networks:
+      - kavuny-net
+
+  coffee-packs:
+    image: coffee-packs
+    build:
+      context: coffee-packs
+      dockerfile: CoffeePacks.Dockerfile
+    networks:
+      - kavuny-net
+    depends_on:
+      packs-db:
+        condition: service_healthy
+    environment:
+      CONSUL_ADDR: consul:8500
+
+  packs-db:
+    build:
+      context: coffee-packs
+      dockerfile: Postgres.Dockerfile
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_DB: kavuny
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - ./coffee-packs/demo_data:/opt/demo_data
+    networks:
+      - kavuny-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+  coffee-shops:
+    image: coffee-shops
+    build:
+      context: coffee-shops
+      dockerfile: CoffeeShops.Dockerfile
+    networks:
+      - kavuny-net
+    depends_on:
+      shops-db:
+        condition: service_healthy
+      packs-db:
+        condition: service_healthy
+    environment:
+      CONSUL_ADDR: consul:8500
+
+  shops-db:
+    build:
+      context: coffee-shops
+      dockerfile: Postgres.Dockerfile
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_DB: kavuny
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - ./coffee-shops/demo_data:/opt/demo_data
+    networks:
+      - kavuny-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+networks:
+  kavuny-net:
+    driver: bridge
