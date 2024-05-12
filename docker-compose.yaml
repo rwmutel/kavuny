@@ -3,7 +3,6 @@ services:
     image: hashicorp/consul:latest
     ports:
       - 8500:8500
-      - 8600:8600/udp
     networks:
       - net
     command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
@@ -27,7 +26,8 @@ services:
       POSTGRES_USER: auth-service
       POSTGRES_PASSWORD: pass
     volumes:
-      - ./auth/create.sql:/docker-entrypoint-initdb.d/create.sql
+      - ./demo_data/create.sql:/docker-entrypoint-initdb.d/create.sql
+      - ./demo_data/users.csv:/opt/demo_data/users.csv
     networks:
       - net
 

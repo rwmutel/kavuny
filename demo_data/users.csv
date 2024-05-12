@@ -1,0 +1,16 @@
+id,login,password,salt,user_type
+1,admin,c8b2f12dfb39850e5686a8ec1e515d0a,cDTEgGmzxFPkxNax,user
+2,john_doe,d522a7a4885b900a83e87c34f23e4a3d,d2d5lSVWEdkpb7Gv,user
+3,jane_smith,b3fbd4dac9a2f2dba64aada4f7440fb2,y1GWB3wt1dSnDQtp,user
+4,test_user,3e8e45d5d5f5a893f20b048930dfa7ed,lP589zC6ofNLk8rz,shop
+5,user123,6e449ab3bc48534c58988e7e4ed5d69c,FlJk6RzYkaIl8TGQ,user
+6,webmaster,89b2875d047d7f249d87cd62b5df545e,W6K9HfrpuoRu7z1O,user
+7,support,9545c9b51d3aead0bb7ce60b0756faa3,w5pt7Ss3BUH44gy3,shop
+8,info,32869b95ad94653cdc4447299ff9b1d7,rS3Sypm23lJ0pLWB,shop
+9,sales,b5c876cc62a6ba8c20065205b8726e82,UCVdzOK12LoY67gT,user
+10,marketing,c8ced038d012245e926e416df5664331,tR1owB8yOCRNy2Oz,user
+11,developer,421bc9568aa6bc46f86ed204e4c78512,x2xUW0Z7lzvkU4jT,user
+12,customer,de2ac67359ba1f51e25ee0239f0b2642,e78uwPVPmMCr1J71,shop
+13,manager,0a7b271ac0cf36f76fdcdea7b0016929,zEbL4zQV5n4TF8gW,user
+14,guest,4f43321b39bef61c6610c8665e688f62,tFvnFxMAY3miHJQa,user
+15,demo,b17e7476e33f0ad3404b407937dd32eb,Z3gYvC3nh3zapHY8,user

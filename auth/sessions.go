@@ -63,8 +63,10 @@ func (sm *SessionManager) newSession() (string, *HttpError) {
 
 func (sm *SessionManager) getSession(sessionID string) (*session, *HttpError) {
 	value, err := sm.hzMap.Get(sm.hzCTX, sessionID)
-	if err != nil || value == nil {
+	if err != nil {
 		return nil, NewHttpError(err, "Unable to retrieve value from Hazelcast map", http.StatusServiceUnavailable)
+	} else if value == nil {
+		return nil, nil
 	}
 	var sessionObj session
 	err = json.Unmarshal(value.([]byte), &sessionObj)
@@ -105,7 +107,7 @@ func (sm *SessionManager) GetID(sessionID string) (string, *HttpError) {
 	if sessionObj == nil || sessionObj.AccountID == UnLogged {
 		return "", NewHttpError(errors.New(""), "Not authorised", http.StatusUnauthorized)
 	}
-	return string(sessionObj.IsShopAccount) + strconv.FormatInt(sessionObj.AccountID, 10), nil
+	return string(sessionObj.IsShopAccount) + ":" + strconv.FormatInt(sessionObj.AccountID, 10), nil
 }
 
 func (sm *SessionManager) SetID(sessionID string, id int64, userType UserType) (string, *HttpError) {
