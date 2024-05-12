@@ -4,6 +4,7 @@ from models.menu_item_model import MenuItem
 from typing import List, Tuple
 import requests
 import pandas as pd
+import utils
 
 conn = Client("user", "kavuny", host="shops-db", port=5432)
 
@@ -21,7 +22,7 @@ def get_shop_menu(id: int):
     shop_items = pd.DataFrame(conn.get_shop_menu(id),
                               columns=["id", "coffee_shop_id", "pack_id", "quantity", "price"])
     item_details = pd.DataFrame(
-        requests.get("http://coffee-packs:8080/packs/",
+        requests.get(utils.get_random_service_addr("coffee-packs") + "/packs/",
                      params={"ids": list(shop_items["pack_id"])}).json()
     )
     return shop_items\

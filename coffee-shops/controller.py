@@ -2,9 +2,18 @@ from fastapi import FastAPI, HTTPException, Query
 from typing import Annotated, Optional, List
 import coffee_shop_service
 from models.menu_item_model import MenuItem
+from contextlib import asynccontextmanager
+import utils
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    service_id = utils.register_in_consul("coffee-shops")
+    yield
+    utils.deregister_from_consul(service_id)
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/coffee-shops/{id}")
@@ -65,3 +74,8 @@ def delete_menu_item(id: int, item_id: int):
         return f"successfully deleted {coffee_shop_service.delete_menu_item(id, item_id)} items"
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/healthcheck")
+def healthcheck():
+    return "OK"
