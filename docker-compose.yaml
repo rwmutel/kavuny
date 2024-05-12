@@ -31,6 +31,46 @@ services:
     networks:
       - net
 
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: yes
+    networks:
+      - net
+    healthcheck:
+      test: echo srvr | nc zookeeper 2181 || exit 1
+      timeout: 5s
+      retries: 3
+      interval: 30s
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+    networks:
+      - net
+    depends_on:
+      - zookeeper
+  kafka-topic_creator:
+    image: bitnami/kafka:latest
+    networks:
+      - net
+    command: kafka-topics.sh --create --bootstrap-server kafka:9092 --topic logs --if-not-exists
+    depends_on:
+      - kafka
+
+  logging-service:
+    image: project-log:latest
+    pull_policy: build
+    build:
+      context: src/log
+    environment:
+      CONSUL_ADDR: consul:8500
+      LOG_FILE: /opt/app/log.log
+    volumes:
+      - ./logs/log.log:/opt/app/log.log
+    networks:
+      - net
+
 networks:
   net:
     driver: bridge

@@ -112,7 +112,6 @@ func unregisterConsul(consulAddr string, serviceID string) {
 	client, err := capi.NewClient(cfg)
 	check(err)
 	check(client.Agent().ServiceDeregister(serviceID))
-	fmt.Println("Unregistered service:", serviceID)
 }
 
 func check(err error) {
