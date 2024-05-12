@@ -1,6 +1,9 @@
 from persistence import Client
 from typing import Optional, Tuple, List
 from coffee_pack_model import CoffeePack
+from fastapi import HTTPException
+import requests
+import utils
 
 coffee_pack_item_keys = CoffeePack.model_fields.keys()
 conn = Client("user", "kavuny", host="packs-db", port=5432)
@@ -21,6 +24,13 @@ def tuples_to_json(
     return [dict(zip(item_keys, item)) for item in tuple]
 
 
-def create_pack(pack: CoffeePack) -> int:
-    # TO-DO: add authentication before inserting the pack
+def create_pack(pack: CoffeePack, session_id: int) -> int:
+    print(utils.get_random_service_addr("auth-service"))
+    r = requests.get(utils.get_random_service_addr("auth-service") + "/id",
+                     cookies={"session_id": session_id})
+    if r.status_code == 401:
+        raise HTTPException(status_code=401, detail=r.text)
+    user_type, user_id = r.text.split(":")
+    if user_type != utils.UserType.SHOP:
+        raise HTTPException(status_code=401, detail="Only shops can create packs")
     return conn.insert_coffee_pack(pack.model_dump())

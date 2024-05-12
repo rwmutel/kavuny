@@ -1,9 +1,16 @@
 import consul
 import socket
 import os
+import random
 
 c: consul.Consul = None
 HTTP_PREFIX = "http://"
+
+
+# enum with two user types: "user" and "shop"
+class UserType:
+    USER = "user"
+    SHOP = "shop"
 
 
 def register_in_consul(name: str, port: int = 8080):
@@ -28,3 +35,8 @@ def deregister_from_consul(service_id: str):
 
 def get_consul_kv(key: str):
     return c.kv.get(key)[1]["Value"].decode("utf-8")
+
+
+def get_random_service_addr(name: str):
+    service = random.choice(c.health.service(name)[1])["Service"]
+    return HTTP_PREFIX + service["Address"] + ":" + str(service["Port"])

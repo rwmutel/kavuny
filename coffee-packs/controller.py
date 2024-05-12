@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Cookie
 from typing import Annotated, Optional, List
 import coffee_pack_service as service
 from coffee_pack_model import CoffeePack
@@ -27,12 +27,16 @@ def get_packs(ids: Annotated[Optional[List[int]], Query()] = None):
 
 
 @app.post("/packs/")
-def create_pack(pack: CoffeePack):
+def create_pack(
+    pack: CoffeePack,
+    session_id: Annotated[str | None, Cookie()] = None
+):
+    print(f"{session_id=}")
     try:
-        pack_id = service.create_pack(pack)
+        pack_id = service.create_pack(pack, session_id)
         return f"Pack created with id {pack_id}"
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise e
 
 
 @app.get("/healthcheck")
