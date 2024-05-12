@@ -74,20 +74,20 @@ func externalIP() (string, error) {
 	return "", errors.New("failed to find an external IP address")
 }
 
-func registerInConsul(consulAddr string) (string, error) {
+func registerInConsul(consulAddr string) (string, string, string, error) {
 	cfg := capi.DefaultConfig()
 	cfg.Address = consulAddr
 	client, err := capi.NewClient(cfg)
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 	host, err := externalIP()
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 	serviceID, err := uuid.NewUUID()
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 	err = client.Agent().ServiceRegister(&capi.AgentServiceRegistration{
 		ID:      serviceID.String(),
@@ -101,9 +101,20 @@ func registerInConsul(consulAddr string) (string, error) {
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
-	return serviceID.String(), nil
+	keyValuePairs := client.KV()
+	kafkaAddrKV, _, err := keyValuePairs.Get("kafka_address", &capi.QueryOptions{})
+	if err != nil {
+		return "", "", "", err
+	}
+	kafkaTopicKV, _, err := keyValuePairs.Get("kafka_topic", &capi.QueryOptions{})
+	if err != nil {
+		return "", "", "", err
+	}
+	kafkaAddr := string(kafkaAddrKV.Value)
+	kafkaTopic := string(kafkaTopicKV.Value)
+	return serviceID.String(), kafkaAddr, kafkaTopic, nil
 }
 
 func unregisterConsul(consulAddr string, serviceID string) {
@@ -137,7 +148,7 @@ func main() {
 
 	consulAddr, err := getArgs()
 	check(err)
-	serviceID, err := registerInConsul(consulAddr)
+	serviceID, kafkaAddr, kaffkaTopic, err := registerInConsul(consulAddr)
 	check(err)
 	defer unregisterConsul(consulAddr, serviceID)
 
@@ -149,6 +160,7 @@ func main() {
 	manager := AuthManager{}
 	check(manager.loginManager.Initialize("auth-service", "pass", os.Getenv("POSTGRES_ADDR"), "5432"))
 	check(manager.sessionsManager.Initialize(os.Getenv("HZ_CLUSTERNAME"), os.Getenv("HZ_MAP")))
+	check(manager.logger.Initialize(kafkaAddr, kaffkaTopic))
 	defer manager.Close()
 
 	router := gin.Default()
@@ -163,10 +175,12 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
+		manager.logger.Log(fmt.Sprintf("Auth server %s is starting", serviceID))
 		if err := router.Run(":8080"); err != nil {
 			log.Fatal(err)
 		}
 	}()
 
 	<-stop
+	manager.logger.Log(fmt.Sprintf("Auth server %s is stopping", serviceID))
 }
