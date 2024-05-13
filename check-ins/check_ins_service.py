@@ -22,5 +22,4 @@ def post_check_ins(check_in: dict, session_id: str):
         raise HTTPException(status_code=403,
                             detail="Only users can leave check-ins")
     check_in["user_id"] = int(user_id)
-    print(check_in)
     return conn.post_check_in(check_in)

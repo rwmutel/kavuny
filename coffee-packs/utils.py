@@ -8,7 +8,6 @@ c: consul.Consul = None
 HTTP_PREFIX = "http://"
 
 
-# enum with two user types: "user" and "shop"
 class UserType:
     USER = "user"
     SHOP = "shop"

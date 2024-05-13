@@ -49,7 +49,6 @@ class Client:
         return shop_id
 
     def update_coffee_shop(self, id: int, shop: dict):
-        print(shop)
         query = sql.SQL("UPDATE coffee_shops SET {} WHERE id = %s").format(
             sql.SQL(', ').join(
                 sql.SQL("{} = %s").format(sql.Identifier(k))
@@ -77,7 +76,6 @@ class Client:
         )
         values = [item_id, id]
         values.extend(item.values())
-        print(values)
         cursor = self.conn.cursor()
         cursor.execute(query, values)
         self.conn.commit()
