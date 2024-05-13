@@ -21,6 +21,7 @@ def update_coffee_shop(id: int, coffee_shop: dict, session_id: int):
     if not (user_type == "shop" and int(user_id) == id):
         raise HTTPException(status_code=403,
                             detail="You are not allowed to update this shop")
+    utils.log(coffee_shop.copy())
     return conn.update_coffee_shop(id, coffee_shop)
 
 
@@ -50,6 +51,7 @@ def add_menu_item(id: int, item: MenuItem, session_id: int):
         raise HTTPException(status_code=403,
                             detail="You are not allowed "
                                    "to add items to this shop")
+    utils.log(item.model_dump().copy())
     return conn.add_menu_item(id, item.model_dump())
 
 
@@ -59,6 +61,8 @@ def delete_menu_item(id: int, item_id: int, session_id: int):
     if not (user_type == "shop" and int(user_id) == id):
         raise HTTPException(status_code=403,
                             detail="You are not allowed to delete this item")
+    data = {"action": "deleted item", "shop_id": id, "item_id": item_id}
+    utils.log(data)
     return conn.delete_menu_item(id, item_id)
 
 
