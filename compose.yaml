@@ -36,7 +36,6 @@ services:
         condition: service_healthy
     ports:
       - "8000-8002:8080"
-
   auth-db:
     image: postgres:latest
     environment:
@@ -62,6 +61,8 @@ services:
         condition: service_healthy
     environment:
       CONSUL_ADDR: consul:8500
+    ports:
+      - "8003:8080"
   packs-db:
     build:
       context: src/coffee-packs
@@ -97,6 +98,8 @@ services:
         condition: service_healthy
     environment:
       CONSUL_ADDR: consul:8500
+    ports:
+      - "8004:8080"
   shops-db:
     build:
       context: src/coffee-shops
@@ -128,7 +131,7 @@ services:
     networks:
       - kavuny-net
     ports:
-      - "8080:8080"
+      - "8005:8080"
     environment:
       CONSUL_ADDR: consul:8500
   check-ins-db-1:
@@ -137,6 +140,21 @@ services:
       dockerfile: Cassandra.Dockerfile
     networks:
       - kavuny-net
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status | grep UN"]
+      interval: 15s
+      timeout: 20s
+      retries: 3
+      start_period: 20s
+  check-ins-db-2:
+    image: cassandra:latest
+    networks:
+      - kavuny-net
+    environment:
+      - CASSANDRA_SEEDS=check-ins-db-1
+    depends_on:
+      check-ins-db-1:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "nodetool status | grep UN"]
       interval: 15s
@@ -184,19 +202,3 @@ services:
 networks:
   kavuny-net:
     driver: bridge
-
-# check-ins-db-2:
-#   image: cassandra:latest
-#   networks:
-#     - kavuny-net
-#   environment:
-#     - CASSANDRA_SEEDS=check-ins-db-1
-#   depends_on:
-#     check-ins-db-1:
-#       condition: service_healthy
-#   healthcheck:
-#     test: ["CMD-SHELL", "nodetool status | grep UN"]
-#     interval: 15s
-#     timeout: 20s
-#     retries: 3
-#     start_period: 20s
