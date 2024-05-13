@@ -34,6 +34,9 @@ services:
     depends_on:
       consul:
         condition: service_healthy
+    ports:
+      - "8000-8002:8080"
+
   auth-db:
     image: postgres:latest
     environment:
