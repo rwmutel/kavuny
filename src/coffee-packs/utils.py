@@ -1,12 +1,12 @@
+import json
 import os
 import random
 import socket
-import json
 from datetime import datetime
+
 from kafka.producer import KafkaProducer
 
 import consul
-
 
 consul_addr = os.getenv("CONSUL_ADDR").split(":")
 c = consul.Consul(host=consul_addr[0], port=int(consul_addr[1]))

@@ -1,9 +1,10 @@
+import json
 import os
 import random
 import socket
-from kafka.producer import KafkaProducer
-import json
 from datetime import datetime
+
+from kafka.producer import KafkaProducer
 
 import consul
 

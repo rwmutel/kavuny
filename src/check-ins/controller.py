@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
-import check_ins_service
 from typing import Annotated
-from check_in_model import CheckIn
-from fastapi import FastAPI, HTTPException, Cookie
+
+import check_ins_service
 import utils
+from check_in_model import CheckIn
+from fastapi import Cookie, FastAPI, HTTPException
 
 
 @asynccontextmanager

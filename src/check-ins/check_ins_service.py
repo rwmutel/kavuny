@@ -1,8 +1,9 @@
-from fastapi import HTTPException
-from persistence import Client
+import random
+
 import requests
 import utils
-import random
+from fastapi import HTTPException
+from persistence import Client
 
 conn = Client(random.choice(utils.get_consul_kv("check_ins_cluster_nodes")))
 

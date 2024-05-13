@@ -1,6 +1,7 @@
+from typing import Dict, Literal
+
 from cassandra.cluster import Cluster, Session
 from cassandra.query import dict_factory
-from typing import Dict, Literal
 
 
 class Client:
