@@ -13,7 +13,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 3s
+      start_period: 5s
     networks:
       - kavuny-net
 
@@ -29,6 +29,8 @@ services:
       CONSUL_ADDR: consul:8500
     networks:
       - kavuny-net
+    ports:
+      - "8000:8080"
     depends_on:
       consul:
         condition: service_healthy
@@ -119,6 +121,11 @@ services:
         condition: service_healthy
     networks:
       - kavuny-net
+    ports:
+      - "8080:8080"
+    environment:
+      CONSUL_ADDR: consul:8500
+
 
   check-ins-db-1:
     build:
