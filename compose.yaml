@@ -34,8 +34,8 @@ services:
     depends_on:
       consul:
         condition: service_healthy
-    ports:
-      - "8000-8002:8080"
+    # ports:
+    #   - "8000-8002:8080"
   auth-db:
     image: postgres:latest
     environment:
@@ -61,8 +61,8 @@ services:
         condition: service_healthy
     environment:
       CONSUL_ADDR: consul:8500
-    ports:
-      - "8003:8080"
+    # ports:
+    #   - "8003:8080"
   packs-db:
     build:
       context: src/coffee-packs
@@ -98,8 +98,8 @@ services:
         condition: service_healthy
     environment:
       CONSUL_ADDR: consul:8500
-    ports:
-      - "8004:8080"
+    # ports:
+    #   - "8004:8080"
   shops-db:
     build:
       context: src/coffee-shops
@@ -130,8 +130,8 @@ services:
         condition: service_healthy
     networks:
       - kavuny-net
-    ports:
-      - "8005:8080"
+    # ports:
+    #   - "8005:8080"
     environment:
       CONSUL_ADDR: consul:8500
   check-ins-db-1:
@@ -198,6 +198,15 @@ services:
       - kavuny-net
     depends_on:
       - zookeeper
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - kavuny-net
 
 networks:
   kavuny-net:
