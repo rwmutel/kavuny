@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/check_ins")
+@app.get("/check-ins")
 def get_check_ins(
     coffee_shop_id: int | None = None,
     user_id: int | None = None,
@@ -31,7 +31,7 @@ def get_check_ins(
     return check_ins
 
 
-@app.post("/check_ins")
+@app.post("/check-ins")
 def post_check_ins(
     check_in: CheckIn,
     session_id: Annotated[str | None, Cookie()] = None
