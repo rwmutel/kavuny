@@ -10,4 +10,4 @@ jobs:
       - name: Docker Compose Action
         uses: hoverkraft-tech/compose-action@v2.0.0
         with:
-          compose-file: "compose.yaml"
+          compose-file: "./compose.yaml"
