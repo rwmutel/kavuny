@@ -134,13 +134,13 @@ At least one of the `coffee_shop_id` and `coffee_pack_id` have to be specified.
 
 ### Endpoints
 
-- `GET /check_ins`
+- `GET /check-ins`
   - **Description:** Returns the list of all check-ins for specified parameters.
   - **Parameters:**
     - `coffee_shop_id` (query): id of the shop to get check_ins for (optional)
     - `coffee_pack_id` (query): id of the pack to get check_ins for (optional)
     - `user_id` (query): id of the user to get check_ins for (optional)
-- `POST /check_ins`
+- `POST /check-ins`
   - **Description:** Creates a check-in for logged-in user.
   - **Parameters:**
     - `check_in` (body/json): check-in to create
