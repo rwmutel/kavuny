@@ -1,16 +1,20 @@
 import os
 import random
 import socket
+from kafka.producer import KafkaProducer
+import json
+from datetime import datetime
 
 import consul
-
-c: consul.Consul = None
-HTTP_PREFIX = "http://"
 
 
 class UserType:
     USER = "user"
     SHOP = "shop"
+
+
+c: consul.Consul = None
+HTTP_PREFIX = "http://"
 
 
 def register_in_consul(name: str, port: int = 8080):
@@ -42,3 +46,12 @@ def get_consul_kv(key: str):
 def get_random_service_addr(name: str):
     service = random.choice(c.health.service(name)[1])["Service"]
     return HTTP_PREFIX + service["Address"] + ":" + str(service["Port"])
+
+
+def log_checkin(check_in: dict):
+    check_in["check_in_time"] = check_in["check_in_time"].timestamp()
+    producer = KafkaProducer(bootstrap_servers=get_consul_kv("kafka_address"),
+                             value_serializer=str.encode)
+    producer.send(get_consul_kv("kafka_topic"),
+                  json.dumps(check_in),
+                  timestamp_ms=int(datetime.now().timestamp() * 1000))
