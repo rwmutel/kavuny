@@ -3,7 +3,7 @@ services:
     pull_policy: build
     build:
       dockerfile: Consul.Dockerfile
-      context: ./consul
+      context: src/consul
     ports:
       - "8500:8500"
       - "8600:8600/udp"
@@ -20,55 +20,55 @@ services:
   auth:
     pull_policy: build
     build:
-      context: auth
+      context: src/auth
+    scale: 3
     environment:
+      HZ_NETWORK_RESTAPI_ENABLED: true
       HZ_CLUSTERNAME: auth_hazelcast
       HZ_MAP: sessions
-      POSTGRES_ADDR: postgres
+      POSTGRES_ADDR: auth-db
       GIN_MODE: release
       CONSUL_ADDR: consul:8500
     networks:
       - kavuny-net
-    ports:
-      - "8000:8080"
     depends_on:
       consul:
         condition: service_healthy
-
-  postgres:
+  auth-db:
     image: postgres:latest
     environment:
       POSTGRES_USER: auth-service
       POSTGRES_PASSWORD: pass
     volumes:
-      - ./demo_data/create.sql:/docker-entrypoint-initdb.d/create.sql
-      - ./demo_data/users.csv:/opt/demo_data/users.csv
+      - ./src/demo_data/create.sql:/docker-entrypoint-initdb.d/create.sql
+      - ./src/demo_data/users.csv:/opt/demo_data/users.csv
     networks:
       - kavuny-net
 
   coffee-packs:
     image: coffee-packs
     build:
-      context: coffee-packs
+      context: src/coffee-packs
       dockerfile: CoffeePacks.Dockerfile
     networks:
       - kavuny-net
     depends_on:
       packs-db:
         condition: service_healthy
+      consul:
+        condition: service_healthy
     environment:
       CONSUL_ADDR: consul:8500
-
   packs-db:
     build:
-      context: coffee-packs
+      context: src/coffee-packs
       dockerfile: Postgres.Dockerfile
     environment:
       POSTGRES_USER: user
       POSTGRES_DB: kavuny
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
-      - ./coffee-packs/demo_data:/opt/demo_data
+      - ./src/coffee-packs/demo_data:/opt/demo_data
     networks:
       - kavuny-net
     healthcheck:
@@ -81,7 +81,7 @@ services:
   coffee-shops:
     image: coffee-shops
     build:
-      context: coffee-shops
+      context: src/coffee-shops
       dockerfile: CoffeeShops.Dockerfile
     networks:
       - kavuny-net
@@ -90,19 +90,20 @@ services:
         condition: service_healthy
       packs-db:
         condition: service_healthy
+      consul:
+        condition: service_healthy
     environment:
       CONSUL_ADDR: consul:8500
-
   shops-db:
     build:
-      context: coffee-shops
+      context: src/coffee-shops
       dockerfile: Postgres.Dockerfile
     environment:
       POSTGRES_USER: user
       POSTGRES_DB: kavuny
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
-      - ./coffee-shops/demo_data:/opt/demo_data
+      - ./src/coffee-shops/demo_data:/opt/demo_data
     networks:
       - kavuny-net
     healthcheck:
@@ -114,10 +115,12 @@ services:
 
   check-ins:
     build:
-      context: check-ins
+      context: src/check-ins
       dockerfile: CheckIns.Dockerfile
     depends_on:
       check-ins-db-1:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     networks:
       - kavuny-net
@@ -125,11 +128,9 @@ services:
       - "8080:8080"
     environment:
       CONSUL_ADDR: consul:8500
-
-
   check-ins-db-1:
     build:
-      context: check-ins
+      context: src/check-ins
       dockerfile: Cassandra.Dockerfile
     networks:
       - kavuny-net
@@ -139,22 +140,60 @@ services:
       timeout: 20s
       retries: 3
       start_period: 20s
-  # check-ins-db-2:
-  #   image: cassandra:latest
-  #   networks:
-  #     - kavuny-net
-  #   environment:
-  #     - CASSANDRA_SEEDS=check-ins-db-1
-  #   depends_on:
-  #     check-ins-db-1:
-  #       condition: service_healthy
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "nodetool status | grep UN"]
-  #     interval: 15s
-  #     timeout: 20s
-  #     retries: 3
-  #     start_period: 20s
+
+  logging-service:
+    image: project-log:latest
+    pull_policy: build
+    build:
+      context: src/log
+    environment:
+      CONSUL_ADDR: consul:8500
+      LOG_FILE: /opt/app/logs/log.log
+    volumes:
+      - ./logs:/opt/app/logs
+    networks:
+      - kavuny-net
+    depends_on:
+      consul:
+        condition: service_healthy
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: yes
+    networks:
+      - kavuny-net
+    healthcheck:
+      test: echo srvr | nc zookeeper 2181 || exit 1
+      timeout: 5s
+      retries: 3
+      interval: 30s
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+    networks:
+      - kavuny-net
+    depends_on:
+      - zookeeper
 
 networks:
   kavuny-net:
     driver: bridge
+
+# check-ins-db-2:
+#   image: cassandra:latest
+#   networks:
+#     - kavuny-net
+#   environment:
+#     - CASSANDRA_SEEDS=check-ins-db-1
+#   depends_on:
+#     check-ins-db-1:
+#       condition: service_healthy
+#   healthcheck:
+#     test: ["CMD-SHELL", "nodetool status | grep UN"]
+#     interval: 15s
+#     timeout: 20s
+#     retries: 3
+#     start_period: 20s

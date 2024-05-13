@@ -17,10 +17,13 @@ import (
 )
 
 func startHazelcast() <-chan error {
-	err := exec.Command("hz", "start").Start()
-	if err != nil {
-		return nil
-	}
+	go func() {
+		output, _ := exec.Command("hz", "start").Output()
+		fmt.Println(output)
+	}()
+	//if err != nil {
+	//	return nil
+	//}
 	hzStarted := make(chan error)
 	go func() {
 		var err error
@@ -29,6 +32,8 @@ func startHazelcast() <-chan error {
 			_, err = http.Get("http://localhost:5701/hazelcast/health")
 			if err == nil {
 				hzStarted <- nil
+
+				<-time.After(10 * time.Second)
 				close(hzStarted)
 				return
 			}
@@ -74,20 +79,20 @@ func externalIP() (string, error) {
 	return "", errors.New("failed to find an external IP address")
 }
 
-func registerInConsul(consulAddr string) (string, error) {
+func registerInConsul(consulAddr string) (string, string, string, error) {
 	cfg := capi.DefaultConfig()
 	cfg.Address = consulAddr
 	client, err := capi.NewClient(cfg)
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 	host, err := externalIP()
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 	serviceID, err := uuid.NewUUID()
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 	err = client.Agent().ServiceRegister(&capi.AgentServiceRegistration{
 		ID:      serviceID.String(),
@@ -101,9 +106,20 @@ func registerInConsul(consulAddr string) (string, error) {
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
-	return serviceID.String(), nil
+	keyValuePairs := client.KV()
+	kafkaAddrKV, _, err := keyValuePairs.Get("kafka_address", &capi.QueryOptions{})
+	if err != nil {
+		return "", "", "", err
+	}
+	kafkaTopicKV, _, err := keyValuePairs.Get("kafka_topic", &capi.QueryOptions{})
+	if err != nil {
+		return "", "", "", err
+	}
+	kafkaAddr := string(kafkaAddrKV.Value)
+	kafkaTopic := string(kafkaTopicKV.Value)
+	return serviceID.String(), kafkaAddr, kafkaTopic, nil
 }
 
 func unregisterConsul(consulAddr string, serviceID string) {
@@ -112,7 +128,6 @@ func unregisterConsul(consulAddr string, serviceID string) {
 	client, err := capi.NewClient(cfg)
 	check(err)
 	check(client.Agent().ServiceDeregister(serviceID))
-	fmt.Println("Unregistered service:", serviceID)
 }
 
 func check(err error) {
@@ -138,7 +153,7 @@ func main() {
 
 	consulAddr, err := getArgs()
 	check(err)
-	serviceID, err := registerInConsul(consulAddr)
+	serviceID, _, _, err := registerInConsul(consulAddr)
 	check(err)
 	defer unregisterConsul(consulAddr, serviceID)
 

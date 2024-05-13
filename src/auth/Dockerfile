@@ -17,6 +17,4 @@ FROM hazelcast/hazelcast:latest AS build-release-stage
 
 COPY --from=build-stage /auth_service /auth_service
 
-EXPOSE 8080
-
 CMD /auth_service
