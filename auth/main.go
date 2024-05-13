@@ -23,9 +23,9 @@ func startHazelcast() <-chan error {
 	}
 	hzStarted := make(chan error)
 	go func() {
-		<-time.After(5 * time.Second)
 		var err error
-		for range 5 {
+		for range 20 {
+			<-time.After(time.Second)
 			_, err = http.Get("http://localhost:5701/hazelcast/health")
 			if err == nil {
 				hzStarted <- nil
@@ -142,13 +142,9 @@ func main() {
 	check(err)
 	defer unregisterConsul(consulAddr, serviceID)
 
-	err = <-hzStarted
-	if err != nil {
-		log.Fatalln("Failed to start Hazelcast:", err)
-	}
-
 	manager := AuthManager{}
 	check(manager.loginManager.Initialize("auth-service", "pass", os.Getenv("POSTGRES_ADDR"), "5432"))
+	check(<-hzStarted)
 	check(manager.sessionsManager.Initialize(os.Getenv("HZ_CLUSTERNAME"), os.Getenv("HZ_MAP")))
 	defer manager.Close()
 
