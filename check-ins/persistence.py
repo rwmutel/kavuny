@@ -1,7 +1,6 @@
 from cassandra.cluster import Cluster, Session
 from cassandra.query import dict_factory
 from typing import Dict, Literal
-from datetime import datetime
 
 
 class Client:
@@ -28,9 +27,10 @@ class Client:
             table = "pack_check_ins"
             where_clause.append(f"coffee_pack_id = {coffee_pack_id}")
         if user_id is not None:
+            table = "user_check_ins"
             where_clause.append(f"user_id = {user_id}")
         query = f"SELECT * FROM {table}"
-        if (coffee_shop_id is not None and coffee_pack_id is not None):
+        if sum([i is not None for i in [coffee_shop_id, user_id, coffee_pack_id]]) > 1:
             where_clause[-1] += " ALLOW FILTERING"
 
         if where_clause:
@@ -38,13 +38,14 @@ class Client:
         return Client.session.execute(query).all()
 
     def post_check_in(self, check_in: Dict) -> Literal[True]:
-        check_in["check_in_time"] = int(check_in["check_in_time"].timestamp() * 1000)
+        check_in["check_in_time"] =\
+            int(check_in["check_in_time"].timestamp() * 1000)
         values = check_in.values()
-        print(values)
-        query = "INSERT INTO pack_check_ins (coffee_shop_id, check_in_time, coffee_pack_id, rating, check_in_text, user_id) " \
-                "VALUES (%s, %s, %s, %s, %s, %s)"
-        Client.session.execute(query, values)
-        query = "INSERT INTO shop_check_ins (coffee_shop_id, check_in_time, coffee_pack_id, rating, check_in_text, user_id) " \
-                "VALUES (%s, %s, %s, %s, %s, %s)"
-        Client.session.execute(query, values)
+        query = """INSERT INTO {}
+                (coffee_shop_id, check_in_time, coffee_pack_id,
+                rating, check_in_text, user_id)
+                VALUES (%s, %s, %s, %s, %s, %s)"""
+        tables = ["pack_check_ins", "shop_check_ins", "user_check_ins"]
+        for table in tables:
+            Client.session.execute(query.format(table), values)
         return True
