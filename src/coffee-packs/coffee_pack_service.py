@@ -7,7 +7,8 @@ from fastapi import HTTPException
 from persistence import Client
 
 coffee_pack_item_keys = CoffeePack.model_fields.keys()
-conn = Client("user", "kavuny", host="packs-db", port=5432)
+db_conf = utils.get_consul_kv("packs_db")
+conn = Client(**db_conf)
 
 
 def get_pack(id: int):

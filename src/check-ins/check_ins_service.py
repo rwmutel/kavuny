@@ -2,8 +2,9 @@ from fastapi import HTTPException
 from persistence import Client
 import requests
 import utils
+import random
 
-conn = Client()
+conn = Client(random.choice(utils.get_consul_kv("check_ins_cluster_nodes")))
 
 
 def get_check_ins(coffee_shop_id: int | None,

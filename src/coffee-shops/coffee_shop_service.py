@@ -8,7 +8,8 @@ from models.coffee_shop_model import CoffeeShop
 from models.menu_item_model import MenuItem
 from persistence import Client
 
-conn = Client("user", "kavuny", host="shops-db", port=5432)
+db_conf = utils.get_consul_kv("shops_db")
+conn = Client(**db_conf)
 
 
 def get_coffee_shop(id: int = None):

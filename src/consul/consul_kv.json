@@ -13,5 +13,38 @@
         "key": "kv_initted",
         "flags": 0,
         "value": true
+    },
+    {
+        "key": "check_ins_cluster_nodes",
+        "flags": 0,
+        "value": 
+        [
+            "check-ins-db-1",
+            "check-ins-db-2"
+        ] 
+    },
+    {
+        "key": "packs_db",
+        "flags": 0,
+        "value": 
+        {
+            "host": "packs-db",
+            "port": 5432,
+            "user": "user",
+            "password": "",
+            "dbname": "kavuny"
+        }
+    },
+    {
+        "key": "shops_db",
+        "flags": 0,
+        "value": 
+        {
+            "host": "shops-db",
+            "port": 5432,
+            "user": "user",
+            "password": "",
+            "dbname": "kavuny"
+        }
     }
 ]
