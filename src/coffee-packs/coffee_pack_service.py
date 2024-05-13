@@ -34,4 +34,7 @@ def create_pack(pack: CoffeePack, session_id: int) -> int:
     if user_type != utils.UserType.SHOP:
         raise HTTPException(status_code=401,
                             detail="Only shops can create packs")
+    data = pack.model_dump().copy()
+    data["author_id"] = user_id
+    utils.log(data)
     return conn.insert_coffee_pack(pack.model_dump())

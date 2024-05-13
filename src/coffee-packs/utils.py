@@ -1,6 +1,9 @@
 import os
 import random
 import socket
+import json
+from datetime import datetime
+from kafka.producer import KafkaProducer
 
 import consul
 
@@ -42,3 +45,12 @@ def get_consul_kv(key: str):
 def get_random_service_addr(name: str):
     service = random.choice(c.health.service(name)[1])["Service"]
     return HTTP_PREFIX + service["Address"] + ":" + str(service["Port"])
+
+
+def log(data: dict):
+    data["timestamp"] = datetime.now().timestamp()
+    producer = KafkaProducer(bootstrap_servers=get_consul_kv("kafka_address"),
+                             value_serializer=str.encode)
+    producer.send(get_consul_kv("kafka_topic"),
+                  json.dumps(data),
+                  timestamp_ms=int(datetime.now().timestamp() * 1000))
