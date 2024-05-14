@@ -46,5 +46,16 @@
             "password": "",
             "dbname": "kavuny"
         }
+    },
+    {
+        "key": "auth_db",
+        "flags": 0,
+        "value":
+        {
+            "host": "auth-db",
+            "port": 5432,
+            "user": "auth-service",
+            "password": "pass"
+        }
     }
 ]

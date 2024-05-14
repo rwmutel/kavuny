@@ -16,6 +16,13 @@ type UserType string
 
 var userTypes = []UserType{"user", "shop"}
 
+type DBConfig struct {
+	Host     string `json:"host,omitempty"`
+	Port     int    `json:"port,omitempty"`
+	Username string `json:"user,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
 type LoginDatabaseManager struct {
 	db *sql.DB
 }
@@ -73,9 +80,9 @@ func (dbm *LoginDatabaseManager) CreateAccount(login, password string, user User
 	return id, nil
 }
 
-func (dbm *LoginDatabaseManager) Initialize(user, password, host, port string) (err error) {
-	connStr := fmt.Sprintf("sslmode=disable user=%s password=%s host=%s port=%s",
-		user, password, host, port)
+func (dbm *LoginDatabaseManager) Initialize(config *DBConfig) (err error) {
+	connStr := fmt.Sprintf("sslmode=disable user=%s password=%s host=%s port=%d",
+		config.Username, config.Password, config.Host, config.Port)
 	dbm.db, err = sql.Open("postgres", connStr)
 	return
 }

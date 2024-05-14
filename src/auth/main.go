@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -21,9 +22,6 @@ func startHazelcast() <-chan error {
 		output, _ := exec.Command("hz", "start").Output()
 		fmt.Println(output)
 	}()
-	//if err != nil {
-	//	return nil
-	//}
 	hzStarted := make(chan error)
 	go func() {
 		var err error
@@ -79,20 +77,20 @@ func externalIP() (string, error) {
 	return "", errors.New("failed to find an external IP address")
 }
 
-func registerInConsul(consulAddr string) (string, string, string, error) {
+func registerInConsul(consulAddr string) (string, *DBConfig, error) {
 	cfg := capi.DefaultConfig()
 	cfg.Address = consulAddr
 	client, err := capi.NewClient(cfg)
 	if err != nil {
-		return "", "", "", err
+		return "", nil, err
 	}
 	host, err := externalIP()
 	if err != nil {
-		return "", "", "", err
+		return "", nil, err
 	}
 	serviceID, err := uuid.NewUUID()
 	if err != nil {
-		return "", "", "", err
+		return "", nil, err
 	}
 	err = client.Agent().ServiceRegister(&capi.AgentServiceRegistration{
 		ID:      serviceID.String(),
@@ -106,20 +104,19 @@ func registerInConsul(consulAddr string) (string, string, string, error) {
 		},
 	})
 	if err != nil {
-		return "", "", "", err
+		return "", nil, err
 	}
 	keyValuePairs := client.KV()
-	kafkaAddrKV, _, err := keyValuePairs.Get("kafka_address", &capi.QueryOptions{})
+	authDBKV, _, err := keyValuePairs.Get("auth_db", &capi.QueryOptions{})
 	if err != nil {
-		return "", "", "", err
+		return "", nil, err
 	}
-	kafkaTopicKV, _, err := keyValuePairs.Get("kafka_topic", &capi.QueryOptions{})
+	var authDBConfig DBConfig
+	err = json.Unmarshal(authDBKV.Value, &authDBConfig)
 	if err != nil {
-		return "", "", "", err
+		return "", nil, err
 	}
-	kafkaAddr := string(kafkaAddrKV.Value)
-	kafkaTopic := string(kafkaTopicKV.Value)
-	return serviceID.String(), kafkaAddr, kafkaTopic, nil
+	return serviceID.String(), &authDBConfig, nil
 }
 
 func unregisterConsul(consulAddr string, serviceID string) {
@@ -153,12 +150,12 @@ func main() {
 
 	consulAddr, err := getArgs()
 	check(err)
-	serviceID, _, _, err := registerInConsul(consulAddr)
+	serviceID, dbConfig, err := registerInConsul(consulAddr)
 	check(err)
 	defer unregisterConsul(consulAddr, serviceID)
 
 	manager := AuthManager{}
-	check(manager.loginManager.Initialize("auth-service", "pass", os.Getenv("POSTGRES_ADDR"), "5432"))
+	check(manager.loginManager.Initialize(dbConfig))
 	check(<-hzStarted)
 	check(manager.sessionsManager.Initialize(os.Getenv("HZ_CLUSTERNAME"), os.Getenv("HZ_MAP")))
 	defer manager.Close()

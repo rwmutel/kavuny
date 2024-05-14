@@ -26,7 +26,6 @@ services:
       HZ_NETWORK_RESTAPI_ENABLED: true
       HZ_CLUSTERNAME: auth_hazelcast
       HZ_MAP: sessions
-      POSTGRES_ADDR: auth-db
       GIN_MODE: release
       CONSUL_ADDR: consul:8500
     networks:
